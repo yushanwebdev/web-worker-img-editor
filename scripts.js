@@ -2,19 +2,23 @@ const $input = document.getElementById("input");
 const $preview = document.getElementById("preview");
 const previewCtx = $preview.getContext("2d");
 
-const image = new Image();
+const worker = new Worker("worker.js");
+
+worker.addEventListener("message", (d) => {
+  const imageData = d.data;
+  previewCtx.putImageData(imageData, 0, 0);
+});
 
 function applyFilter() {
-  const imageData = previewCtx.getImageData(0, 0, image.width, image.height);
+  const imageData = previewCtx.getImageData(
+    0,
+    0,
+    $preview.width,
+    $preview.height
+  );
 
-  for (x = 0; x < image.width; x++) {
-    for (y = 0; y < image.height; y++) {
-      let index = (image.width * y + x) * 4;
-      imageData.data[index] *= 1.2;
-    }
-  }
-
-  previewCtx.putImageData(imageData, 0, 0);
+  // Transfer the ownership of the Typed Array not Clone it
+  worker.postMessage(imageData, [imageData.data.buffer]);
 }
 
 $input.addEventListener("change", (e) => {
@@ -23,5 +27,6 @@ $input.addEventListener("change", (e) => {
     $preview.width = bitmap.width;
     $preview.height = bitmap.height;
     previewCtx.drawImage(bitmap, 0, 0);
+    applyFilter();
   });
 });
